@@ -43,16 +43,24 @@ int encontrarPalavra(char palavra[]){
         	return -1;
 	}
 
+	printf("Palavra para ser encontrada: %s \n", palavra);
+	printf("Palavra no buffer no início: %s \n", buf);
+	printf("Tamanho da palavra: %d \n", palavra_len);
 	while((c = fgetc(file)) != EOF)
 	{
 		if (c == palavra[control])
 		{
 			while(c == palavra[control] && control != palavra_len){
 				buf[control] = c;
+				buf[control+1] = '\0';
 				control++;
+				printf("Palavra no buffer: %s \n", buf);
+				printf("Char no momento: %c \n", c);
+				printf("Control: %d \n", control);
 			}
 			
 			if (strcmp(buf,palavra) == 0){
+				printf("Entrei na comparação \n");
 				printf("%s \n", buf);
 				control = 0;
 				memset(buf, 0, palavra_len);
