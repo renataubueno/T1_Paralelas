@@ -10,191 +10,39 @@ Resultados:				1 - sequential	   ms		                        |
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <omp.h>
-
-#define MAX 1000
+#include <stdbool.h>
 
 long timediff(clock_t t1, clock_t t2) 
 {
     long elapsed;
-    elapsed = ((double)t2 - t1) / CLOCKS_PER_SEC * 1000;
+    elapsed = ((double)t2 - t1) / CLOCKS_PER_SEC * 1000000;
     return elapsed;
 }
 
-/*int leitor(){
-
-	FILE *file;
-	char str[MAX];
-	char* filename = "teste";
- 
-	file = fopen(filename, "rb");
-	if (file == NULL){
-		printf("Arquivo não pode ser aberto %s \n",filename);
-        	return 1;
-	}
-
-	//este laço percorre todo o arquivo texto e imprime o seu conteúdo no terminal
-	while (fgets(str, MAX, file) != NULL){
-		printf("%s", str);
-	}
-
-	fclose(file);
-	return 0;
-
-}*/
-
-int match(char *linha, char *padrao)
+bool wildCmp(char *padrao, char *palavra)  //http://www.firmcodes.com/write-c-program-wildcard-pattern-matching-algorithm/
 {
-	int len = strlen(linha);
-	linha[len - 1] = '\0';
-	
-	printf("Conteúdo de linha: %s \n", linha);
-	printf("Conteúdo do padrao: %s \n", padrao);
-	if (strcmp(linha, padrao) == 0) {
-		return 1;
-	} else {
-		return -1;
-	}
+	//printf("-- Padrão: %s --\n", pattern);
+	//printf("-- Palavra: %s --\n", string);
+	if(*padrao=='\0' && *palavra=='\0')	// Verifica se acabou a palavra e o padrão
+		return true;
+		
+	if(*padrao=='?' || *padrao==*palavra)	// Verifica se é um '?' (um unico caracter faltante), ou se deu match
+		return wildCmp(padrao+1,palavra+1);
+		
+	if(*padrao=='*') // Verifica se é um '*' (multiplos caracteres faltantes) e se a palavra não está vazia
+		return wildCmp(padrao+1,palavra) || wildCmp(padrao,palavra+1);
+		
+	return false;
 }
 
-int patternMatching(char *linha, char *padrao)
+int encontrarPalavra(char palavra[])
 {
-	int len_linha = strlen(linha);
-	int len_padrao = strlen(padrao);
-	int len_buffer = 0;
-	int len_controle = 0;
-	int i = 0;
-	int j = 0;
-	char buffer[200];
-
-	char conteudo_linha;
-	char conteudo_padrao;
-
-	linha[len_linha - 1] = '\0';
-
-	if(len_padrao == 0){
-		return -1;
-	}
-
-	//printf("Conteúdo de linha: %s \n", linha);
-	//printf("Conteúdo do padrao: %s \n", padrao);
-	
-	//ideia do algoritmo para casos onde começa com *:
-	if(padrao[j] == '*'){
-		conteudo_linha = linha[i];
-		conteudo_padrao = padrao[j+1];
-		while(conteudo_linha != conteudo_padrao){
-			buffer[i] = conteudo_linha;
-			buffer[i+1] = '\0';
-			i++;
-			conteudo_linha = linha[i];
-		}
-		//printf("Conteúdo do buffer: %s \n", buffer);
-		j++;
-		len_buffer++;
-		conteudo_padrao = padrao[j];
-		while(conteudo_linha == conteudo_padrao && len_buffer < len_padrao){
-			buffer[i] = conteudo_linha;
-			buffer[i+1] = '\0';
-			i++;
-			j++;
-			len_buffer++;
-			conteudo_linha = linha[i];
-			conteudo_padrao = padrao[j];
-			//printf("Conteúdo do buffer 2.0: %s \n", buffer);
-		}
-
-		memset(buffer, 0, len_padrao);
-		if(len_buffer == len_padrao){
-			return 1;
-		} else {
-			return -1;
-		}
-	// quando começa com ?		
-	} else if (padrao[j] == '?'){
-		conteudo_linha = linha[i];
-		conteudo_padrao = padrao[j];
-		buffer[i] = conteudo_linha;
-		buffer[i+1] = '\0';
-		i++;
-		conteudo_linha = linha[i];
-		j++;
-		len_buffer++;
-		conteudo_padrao = padrao[j];
-		while(conteudo_linha == conteudo_padrao && len_buffer < len_padrao){
-			buffer[i] = conteudo_linha;
-			buffer[i+1] = '\0';
-			i++;
-			j++;
-			len_buffer++;
-			conteudo_linha = linha[i];
-			conteudo_padrao = padrao[j];
-		}
-
-		memset(buffer, 0, len_padrao);
-		if(len_buffer == len_padrao){
-			return 1;
-		} else {
-			return -1;
-		}
-	// quando o * ou a ? estão no meio da palavra
-	} else {
-		printf("Conteúdo de linha: %s \n", linha);
-		while(len_controle < len_linha){
-			len_controle++;
-			conteudo_linha = linha[i];
-			conteudo_padrao = padrao[j];
-			//printf("Conteúdo da linha na posição %d: %c \n", i, conteudo_linha);
-			while((conteudo_linha == conteudo_padrao || conteudo_padrao == '?' || conteudo_padrao == '*') && (conteudo_linha != ' ' || conteudo_linha != '\t' || conteudo_linha != '\r' || conteudo_linha != '\n' || conteudo_linha != '\v' || conteudo_linha != '\f') && len_buffer < len_padrao){
-				//printf("Entrei no while para verificar padrão \n");
-				if(conteudo_padrao == conteudo_linha || conteudo_padrao == '?'){
-					printf("Conteúdo da linha na posição %d: %c \n", i, conteudo_linha);
-					buffer[i] = conteudo_linha;
-					buffer[i+1] = '\0';
-					printf("Conteúdo do buffer no caso da igualdade ou interrogação: %s \n", buffer);
-					i++;
-					j++;
-					len_buffer++;
-					conteudo_linha = linha[i];
-					conteudo_padrao = padrao[j];
-				} else {
-					conteudo_linha = linha[i];
-					conteudo_padrao = padrao[j+1];
-					printf("Conteúdo da linha na posição %d: %c \n", i, conteudo_linha);
-					while(conteudo_linha != conteudo_padrao && (conteudo_linha != ' ' || conteudo_linha != '\t' || conteudo_linha != '\r' || conteudo_linha != '\n' || conteudo_linha != '\v' || conteudo_linha != '\f')){
-						buffer[i] = conteudo_linha;
-						buffer[i+1] = '\0';
-						printf("Conteúdo do buffer no while do asterisco: %s \n", buffer);
-						i++;
-						conteudo_linha = linha[i];
-					}
-					j++;
-					len_buffer++;
-					conteudo_padrao = padrao[j];
-				}
-			}
-			//printf("Conteúdo do buffer saindo do while: %s \n", buffer);
-			memset(buffer, 0, len_padrao);
-			i++;
-			if(len_buffer == len_padrao){
-				return 1;
-			} else if(len_controle == len_linha) {
-				return -1;
-			}
-		}
-	}
-
-	return 0;
-}
-
-int encontrarPalavra(char palavra[]){
 
 	FILE *file;
 	char *line = NULL;
 	size_t length = 0;
 	ssize_t read;
 	char* filename = "teste";
-	int retorno_match = 0;
 	int count = 0;
 	
 	clock_t t1, t2;
@@ -208,13 +56,34 @@ int encontrarPalavra(char palavra[]){
 	
 	t1 = clock();
 
+
 	while ((read = getline(&line, &length, file)) != -1) {
-		retorno_match = patternMatching(line, palavra);
-		if(retorno_match == 1){
-			count++;
+		//manda um thread processar a linha
+		
+		// Marca o fim da linha
+		int len_linha = strlen(line);
+		line[len_linha - 1] = '\0';
+
+		// A thread vai quebrar a linha em um vetor de palavras
+		char * pch;
+		//printf("Linha: %s\n", line);
+		pch = strtok(line," ,.-");
+
+		// Enquanto a linha não acabar
+		while (pch != NULL && pch != "") {
+			//printf("%s\n",pch);
+			// A thread vai verificar se a palavra corresponde ao padrao, incrementando o count caso positivo
+			if(wildCmp(palavra, pch)) {
+				count++;
+				printf("Achou até agora: %d:\n", count);
+			}
+
+			// pega a proxima palavra da linha
+			pch = strtok(NULL, " ,.-");
 		}
+
 		//printf("Valor do retorno do match: %d \n", retorno_match);
-    	}
+    }
 		
 	fclose(file);
     	if (line){
@@ -225,7 +94,7 @@ int encontrarPalavra(char palavra[]){
 	
 	t2 = clock();
     elapsed = timediff(t1, t2);
-    printf("\n\nelapsed: %ld ms\n", elapsed);
+    printf("\n\nelapsed: %ld us\n", elapsed);
 
 }
 
